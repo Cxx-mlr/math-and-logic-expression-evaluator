@@ -30,3 +30,17 @@ int main() {
 
 : 14
 ```
+\
+\
+Grammar
+
+```
+EXPR_P -> AND_OR
+
+AND_OR             -> LESS_GREATER_EQUAL (("&&" | "||") LESS_GREATER_EQUAL)* ;
+LESS_GREATER_EQUAL -> PLUS_MINUS (("==" | "!=" | ">" | "<" | ">=" || "<=") PLUS_MINUS)* ;
+PLUS_MINUS         -> MULT_DIV (("+" | "-") MULT_DIV)* ;
+MULT_DIV           -> UNARY ((("*" | "/") UNARY)* | (("^") MULT_DIV)*) ;
+UNARY              -> ("-") UNARY | PRIMARY
+PRIMARY            -> "(" | EXPR_P | NUMBER
+```
