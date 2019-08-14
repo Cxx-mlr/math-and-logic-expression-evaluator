@@ -8,7 +8,9 @@
 #include <string>
 
 #include <utility>
-#include <iomanip>
+#include <algorithm>
+
+#include <cmath>
 
 CXX_BEGIN
 
@@ -26,9 +28,10 @@ inline bool is_whitespace(char const c) {
 
 inline bool is_digit(char const c) { return ('0' <= c) && (c <= '9'); }
 
-const char* to_str(token_e token)
+const char* to_str(token_e const token)
 {
-	switch (token) {
+	switch (token)
+	{
 		case EXP       : return "^"      ;
 		case MULT      : return "*"      ;
 		case DIV       : return "/"      ;
@@ -84,9 +87,9 @@ token_e get_token() {
 
 	index -= 1;
 
-	if (is_digit(expr[index])) {
-		do
-		{
+	if (is_digit(expr[index]))
+	{
+		do {
 			number += expr[index]; ++index;
 		}
 
@@ -99,7 +102,7 @@ token_e get_token() {
 }
 
 struct Base {
-	virtual void   print() const = 0;
+	virtual void   print  () const = 0;
 	virtual double compute() const = 0;
 
 	virtual ~Base() = 0;
@@ -114,30 +117,32 @@ struct Calc : Base
 	Base* left, * right;
 	Calc(token_e op, Base* left, Base* right) : op(op), left(left), right(right) {}
 
-	void print() const override {
-
+	void print() const override
+	{
 		left->print();
 		right->print();
 
 		std::printf("%s", to_str(op));
 	}
 
-	double compute() const override {
-		switch (op) {
-		case EXP           : return (int)std::pow(left->compute(), right->compute());
-		case MULT          : return left->compute() *  right->compute();
-		case DIV           : return left->compute() /  right->compute();
-		case PLUS          : return left->compute() +  right->compute();
-		case MINUS         : return left->compute() -  right->compute();
+	double compute() const override
+	{
+		switch (op)
+		{
+			case EXP           : return (int)std::pow(left->compute(), right->compute());
+			case MULT          : return left->compute() *  right->compute();
+			case DIV           : return left->compute() /  right->compute();
+			case PLUS          : return left->compute() +  right->compute();
+			case MINUS         : return left->compute() -  right->compute();
 
-		case EQUAL_TO      : return left->compute() == right->compute();
-		case NOT_EQUAL_TO  : return left->compute() != right->compute();
-		case GREATER       : return left->compute() >  right->compute();
-		case LESS          : return left->compute() <  right->compute();
-		case GREATER_EQUAL : return left->compute() >= right->compute();
-		case LESS_EQUAL    : return left->compute() <= right->compute();
-		case LOGICAL_AND   : return left->compute() && right->compute();
-		case LOGICAL_OR    : return left->compute() || right->compute();
+			case EQUAL_TO      : return left->compute() == right->compute();
+			case NOT_EQUAL_TO  : return left->compute() != right->compute();
+			case GREATER       : return left->compute() >  right->compute();
+			case LESS          : return left->compute() <  right->compute();
+			case GREATER_EQUAL : return left->compute() >= right->compute();
+			case LESS_EQUAL    : return left->compute() <= right->compute();
+			case LOGICAL_AND   : return left->compute() && right->compute();
+			case LOGICAL_OR    : return left->compute() || right->compute();
 		}
 
 		return 0;
@@ -159,12 +164,14 @@ struct Unary : Base
 	Base* value;
 	Unary(token_e op, Base* value) : op(op), value(value) {}
 
-	void print() const override {
+	void print() const override
+	{
 		std::printf("%s", to_str(op));
 		value->print();
 	}
 
-	double compute() const override {
+	double compute() const override
+	{
 		if (op == MINUS) return (value->compute() * -1);
 		return 0;
 	}
@@ -180,20 +187,22 @@ struct Value : Base
 
 	Value(double value) : value(value) {}
 
-	void print() const override {
+	void print() const override
+	{
 		std::printf("%f", value);
 	}
 
-	double compute() const override {
+	double compute() const override
+	{
 		return value;
 	}
 
 	~Value() = default;
 };
 
-template <class enum_x, class... enums>
-inline bool match(enum_x arg_x, enums... args) {
-	return (arg_x == cur_token) || ((cur_token == args) || ...);
+template <std::size_t size_n>
+inline bool operator== (token_e const token, token_e const(&types)[size_n]) {
+	return std::any_of(std::cbegin(types), std::cend(types), [token](token_e const type) { return (type == cur_token); });
 }
 
 template <class... types>
@@ -215,11 +224,11 @@ Base* expr_p() {
 	return and_or();
 }
 
-Base* and_or()
-{
+Base* and_or() {
 	Base* left = less_greater_equal();
 
-	if (match(LOGICAL_OR, LOGICAL_AND)) {
+	if (operator== (cur_token, { LOGICAL_OR, LOGICAL_AND }))
+	{
 		do {
 			token_e op = cur_token;
 			advance(cur_token, get_token);
@@ -228,17 +237,17 @@ Base* and_or()
 			left = new Calc(op, left, right);
 		}
 
-		while (cur_token != END && match(LOGICAL_AND, LOGICAL_OR));
+		while (cur_token != END && operator== (cur_token, { LOGICAL_OR, LOGICAL_AND }));
 	}
 
 	return left;
 }
 
-Base* less_greater_equal()
-{
+Base* less_greater_equal() {
 	Base* left = plus_minus();
 
-	if (match(EQUAL_TO, NOT_EQUAL_TO, GREATER, LESS, GREATER_EQUAL, LESS_EQUAL)) {
+	if (operator== (cur_token, { EQUAL_TO, NOT_EQUAL_TO, GREATER, LESS, GREATER_EQUAL, LESS_EQUAL }))
+	{
 		do {
 			token_e op = cur_token;
 			advance(cur_token, get_token);
@@ -247,18 +256,18 @@ Base* less_greater_equal()
 			left = new Calc(op, left, right);
 		}
 
-		while (cur_token != END && match(EQUAL_TO, NOT_EQUAL_TO, GREATER, LESS, GREATER_EQUAL, LESS_EQUAL));
+		while (cur_token != END && operator== (cur_token, { EQUAL_TO, NOT_EQUAL_TO, GREATER, LESS, GREATER_EQUAL, LESS_EQUAL }));
 	}
 
 	return left;
 }
 
 
-Base* plus_minus()
-{
+Base* plus_minus() {
 	Base* left = mult_div();
 
-	if (match(PLUS, MINUS)) {
+	if (operator== (cur_token, { PLUS, MINUS }))
+	{
 		do {
 			token_e op = cur_token;
 			advance(cur_token, get_token);
@@ -267,17 +276,17 @@ Base* plus_minus()
 			left = new Calc(op, left, right);
 		}
 
-		while (cur_token != END, match(PLUS, MINUS));
+		while (cur_token != END, operator== (cur_token, { PLUS, MINUS }));
 	}
 
 	return left;
 }
 
-Base* mult_div()
-{
+Base* mult_div() {
 	Base* left = unary();
 
-	if (match(MULT, DIV)) {
+	if (operator== (cur_token, { MULT, DIV }))
+	{
 		do {
 			token_e op = cur_token;
 			advance(cur_token, get_token);
@@ -287,10 +296,11 @@ Base* mult_div()
 			left = new Calc(op, left, right);
 		}
 
-		while (cur_token != END, match(MULT, DIV));
+		while (cur_token != END && operator== (cur_token, { MULT, DIV }));
 	}
 
-	else if (match(EXP)) {
+	else if (operator== (cur_token, { EXP }))
+	{
 		token_e op = cur_token;
 		advance(cur_token, get_token);
 
@@ -301,9 +311,9 @@ Base* mult_div()
 	return left;
 }
 
-Base* unary()
-{
-	if (match(MINUS)) {
+Base* unary() {
+	if (operator== (cur_token, { MINUS }))
+	{
 		token_e op = cur_token;
 		advance(cur_token, get_token);
 
@@ -315,9 +325,8 @@ Base* unary()
 	return primary();
 }
 
-Base* primary()
-{
-	if (match(NUMBER)) {
+Base* primary() {
+	if (operator== (cur_token, { NUMBER })) {
 		advance(cur_token, get_token);
 
 		double value = std::stod(number);
@@ -326,7 +335,7 @@ Base* primary()
 		return new Value(value);
 	}
 
-	if (match(LPARENTH)) {
+	if (operator== (cur_token, { LPARENTH })) {
 		Base* left = expr_p();
 		advance(cur_token, get_token);
 
@@ -339,7 +348,7 @@ Base* primary()
 Base* AST = nullptr;
 
 double Compute(std::string expr) {
-	cxx::expr = std::move(expr);
+	Cxx::expr = std::move(expr);
 	index = 0;
 
 	AST = expr_p();
