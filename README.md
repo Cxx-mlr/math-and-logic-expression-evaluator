@@ -44,3 +44,7 @@ MULT_DIV           -> UNARY ((("*" | "/") UNARY)* | (("^") MULT_DIV)*) ;
 UNARY              -> ("-") UNARY | PRIMARY
 PRIMARY            -> "(" | EXPR_P | NUMBER
 ```
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
